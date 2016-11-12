@@ -2,14 +2,20 @@
 
 Contains different helpers to make life easier with NewRelic and Context.
 
+## Installation
+
+`go get github.com/smacker/newrelic-context`
+
 ## In this package:
 
-* ContextWithTxn - Set NewRelic transaction to context
-* GetTnxFromContext - Get NewRelic transaction from context anywhere
-* NewRelicMiddleware - Reports time in NewRelic and set transaction in context
-* WrapHTTPClient - Wraps client transport with newrelic RoundTripper with transaction from context
-* SetTxnToGorm - Sets transaction from Context to gorm settings
-* AddGormCallbacks - Adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
+* `ContextWithTxn` - Set NewRelic transaction to context
+* `GetTnxFromContext` - Get NewRelic transaction from context anywhere
+* `NewRelicMiddleware` - Reports time in NewRelic and set transaction in context
+* `WrapHTTPClient` - Wraps client transport with newrelic RoundTripper with transaction from context
+* `SetTxnToGorm` - Sets transaction from Context to gorm settings
+* `AddGormCallbacks` - Adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
+
+API documentation is available on [godoc.org](https://godoc.org/github.com/smacker/newrelic-context)
 
 ## Examples:
 
