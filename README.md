@@ -10,7 +10,7 @@ Contains different helpers to make life easier with NewRelic and Context.
 
 * `ContextWithTxn` - Set NewRelic transaction to context
 * `GetTnxFromContext` - Get NewRelic transaction from context anywhere
-* `NewRelicMiddleware` - Reports time in NewRelic and set transaction in context
+* `NewRelicMiddleware` - Reports time in NewRelic and sets transaction in context
 * `WrapHTTPClient` - Wraps client transport with newrelic RoundTripper with transaction from context
 * `SetTxnToGorm` - Sets transaction from Context to gorm settings
 * `AddGormCallbacks` - Adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
