@@ -31,6 +31,11 @@ func NewMiddlewareWithConfig(c newrelic.Config) (*NewRelicMiddleware, error) {
 	return &NewRelicMiddleware{app, makeTransactionName}, nil
 }
 
+// Same as NewMiddleware but accepts newrelic.Application
+func NewMiddlewareWithApp(app newrelic.Application) *NewRelicMiddleware {
+	return &NewRelicMiddleware{app, makeTransactionName}
+}
+
 // Allows to change transaction name. By default `fmt.Sprintf("%s %s", r.Method, r.URL.Path)`
 func (nr *NewRelicMiddleware) SetTxnNameFunc(fn TxnNameFunc) {
 	nr.nameFunc = fn
