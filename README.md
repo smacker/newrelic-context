@@ -14,6 +14,8 @@ Contains different helpers to make life easier with NewRelic and Context.
 * `WrapHTTPClient` - Wraps client transport with newrelic RoundTripper with transaction from context
 * `SetTxnToGorm` - Sets transaction from Context to gorm settings
 * `AddGormCallbacks` - Adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
+* `RedisWrapper` - Logs gopkg.in/redis.v4 time in newrelic
+* `WrapRedisClient` - Returns copy of redis client with newrelic for transaction
 
 API documentation is available on [godoc.org](https://godoc.org/github.com/smacker/newrelic-context)
 
@@ -100,4 +102,29 @@ func main() {
 
     http.ListenAndServe(":8000", handler)
 }
+```
+
+Use with Redis:
+
+```go
+func catalogPage(redisClient *redis.Client) http.Handler {
+    return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+        redisClient := WrapRedisClient(req.Context(), redisClient)
+
+        redisClient.Set("key", "value", 0)
+        // ...
+        redisClient.Get("other-key")
+    })
+}
+
+func main() {
+    client := redis.NewClient(...)
+
+    handler := catalogPage(db)
+    nrmiddleware, _ := nrcontext.NewMiddleware("test-app", "my-license-key")
+    handler = nrmiddleware.Handler(handler)
+
+    http.ListenAndServe(":8000", handler)
+}
+
 ```

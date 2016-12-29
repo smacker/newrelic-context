@@ -9,6 +9,7 @@ import (
 
 type redisWrapper func(oldProcess func(cmd redis.Cmder) error) func(cmd redis.Cmder) error
 
+// Function for client.WrapProcess that mesures time of commands in newrelic
 func RedisWrapper(txn newrelic.Transaction) redisWrapper {
 	return func(oldProcess func(cmd redis.Cmder) error) func(cmd redis.Cmder) error {
 		return func(cmd redis.Cmder) error {
@@ -26,6 +27,7 @@ func RedisWrapper(txn newrelic.Transaction) redisWrapper {
 	}
 }
 
+// Gets transaction from Context and applies RedisWrapper, returns cloned client
 func WrapRedisClient(ctx context.Context, c *redis.Client) *redis.Client {
 	txn := GetTnxFromContext(ctx)
 	if txn == nil {
