@@ -3,7 +3,7 @@ package nrcontext
 import (
 	"context"
 	"github.com/alicebob/miniredis"
-	"gopkg.in/redis.v4"
+	"gopkg.in/redis.v5"
 	"testing"
 )
 

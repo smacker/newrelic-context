@@ -3,7 +3,7 @@ package nrcontext
 import (
 	"context"
 	"github.com/newrelic/go-agent"
-	"gopkg.in/redis.v4"
+	"gopkg.in/redis.v5"
 	"strings"
 )
 

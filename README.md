@@ -14,7 +14,7 @@ Contains different helpers to make life easier with NewRelic and Context.
 * `WrapHTTPClient` - Wraps client transport with newrelic RoundTripper with transaction from context
 * `SetTxnToGorm` - Sets transaction from Context to gorm settings
 * `AddGormCallbacks` - Adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
-* `RedisWrapper` - Logs gopkg.in/redis.v4 time in newrelic
+* `RedisWrapper` - Logs gopkg.in/redis.v5 time in newrelic
 * `WrapRedisClient` - Returns copy of redis client with newrelic for transaction
 
 API documentation is available on [godoc.org](https://godoc.org/github.com/smacker/newrelic-context)
