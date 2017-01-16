@@ -2,14 +2,15 @@ package nrcontext
 
 import (
 	"context"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"os"
 	"testing"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 type Model struct {
-	Id    int
+	ID    int
 	Value string
 }
 
@@ -58,8 +59,17 @@ func TestGorm(t *testing.T) {
 	if err := ctxDB.Delete(&m3).Error; err != nil {
 		t.Error(err)
 	}
-	if m1.Id != first.Id {
+	if m1.ID != first.ID {
 		t.Error("You just broke gorm")
+	}
+	// gorm.QueryRow
+	var count int
+	if err := ctxDB.Table("models").Count(&count).Error; err != nil {
+		t.Error(err)
+	}
+	// gorm.QueryRows
+	if _, err := ctxDB.Table("models").Select("id").Rows(); err != nil {
+		t.Error(err)
 	}
 
 	// shouldn't be in log

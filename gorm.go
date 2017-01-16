@@ -3,6 +3,8 @@ package nrcontext
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/newrelic/go-agent"
 )
@@ -42,6 +44,7 @@ func AddGormCallbacks(db *gorm.DB) {
 	registerCallbacks(db, "query", callbacks)
 	registerCallbacks(db, "update", callbacks)
 	registerCallbacks(db, "delete", callbacks)
+	registerCallbacks(db, "row_query", callbacks)
 }
 
 type callbacks struct {
@@ -52,14 +55,16 @@ func newCallbacks(product newrelic.DatastoreProduct) *callbacks {
 	return &callbacks{product}
 }
 
-func (c *callbacks) beforeCreate(scope *gorm.Scope) { c.before(scope) }
-func (c *callbacks) afterCreate(scope *gorm.Scope)  { c.after(scope, "INSERT") }
-func (c *callbacks) beforeQuery(scope *gorm.Scope)  { c.before(scope) }
-func (c *callbacks) afterQuery(scope *gorm.Scope)   { c.after(scope, "SELECT") }
-func (c *callbacks) beforeUpdate(scope *gorm.Scope) { c.before(scope) }
-func (c *callbacks) afterUpdate(scope *gorm.Scope)  { c.after(scope, "UPDATE") }
-func (c *callbacks) beforeDelete(scope *gorm.Scope) { c.before(scope) }
-func (c *callbacks) afterDelete(scope *gorm.Scope)  { c.after(scope, "DELETE") }
+func (c *callbacks) beforeCreate(scope *gorm.Scope)   { c.before(scope) }
+func (c *callbacks) afterCreate(scope *gorm.Scope)    { c.after(scope, "INSERT") }
+func (c *callbacks) beforeQuery(scope *gorm.Scope)    { c.before(scope) }
+func (c *callbacks) afterQuery(scope *gorm.Scope)     { c.after(scope, "SELECT") }
+func (c *callbacks) beforeUpdate(scope *gorm.Scope)   { c.before(scope) }
+func (c *callbacks) afterUpdate(scope *gorm.Scope)    { c.after(scope, "UPDATE") }
+func (c *callbacks) beforeDelete(scope *gorm.Scope)   { c.before(scope) }
+func (c *callbacks) afterDelete(scope *gorm.Scope)    { c.after(scope, "DELETE") }
+func (c *callbacks) beforeRowQuery(scope *gorm.Scope) { c.before(scope) }
+func (c *callbacks) afterRowQuery(scope *gorm.Scope)  { c.after(scope, "") }
 
 func (c *callbacks) before(scope *gorm.Scope) {
 	txn, ok := scope.Get(txnGormKey)
@@ -76,6 +81,9 @@ func (c *callbacks) after(scope *gorm.Scope, operation string) {
 	startTime, ok := scope.Get(startTimeKey)
 	if !ok {
 		return
+	}
+	if operation == "" {
+		operation = strings.ToUpper(strings.Split(scope.SQL, " ")[0])
 	}
 	newrelic.DatastoreSegment{
 		StartTime:          startTime.(newrelic.SegmentStartTime),
@@ -110,5 +118,8 @@ func registerCallbacks(db *gorm.DB, name string, c *callbacks) {
 	case "delete":
 		db.Callback().Delete().Before(gormCallbackName).Register(beforeName, c.beforeDelete)
 		db.Callback().Delete().After(gormCallbackName).Register(afterName, c.afterDelete)
+	case "row_query":
+		db.Callback().RowQuery().Before(gormCallbackName).Register(beforeName, c.beforeRowQuery)
+		db.Callback().RowQuery().After(gormCallbackName).Register(afterName, c.afterRowQuery)
 	}
 }
