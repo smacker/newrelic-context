@@ -2,9 +2,10 @@ package nrcontext
 
 import (
 	"context"
+	"strings"
+
 	"github.com/newrelic/go-agent"
 	"gopkg.in/redis.v5"
-	"strings"
 )
 
 type redisWrapper func(oldProcess func(cmd redis.Cmder) error) func(cmd redis.Cmder) error
@@ -34,9 +35,7 @@ func WrapRedisClient(ctx context.Context, c *redis.Client) *redis.Client {
 		return c
 	}
 
-	cCopy := *c
-	cCopyP := &cCopy
-
+	cCopyP := c.WithContext(ctx)
 	cCopyP.WrapProcess(RedisWrapper(txn))
 
 	return cCopyP
