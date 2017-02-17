@@ -47,7 +47,7 @@ func (nr *NewRelicMiddleware) Handler(h http.Handler) http.Handler {
 		txn := nr.app.StartTransaction(nr.nameFunc(r), w, r)
 		r = r.WithContext(ContextWithTxn(r.Context(), txn))
 		defer txn.End()
-		h.ServeHTTP(w, r)
+		h.ServeHTTP(txn, r)
 	})
 }
 
