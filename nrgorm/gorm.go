@@ -1,7 +1,6 @@
-package nrcontext
+package nrgorm
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -14,16 +13,15 @@ const (
 	startTimeKey = "newrelicStartTime"
 )
 
-// Sets transaction from Context to gorm settings, returns cloned DB
-func SetTxnToGorm(ctx context.Context, db *gorm.DB) *gorm.DB {
-	txn := GetTnxFromContext(ctx)
+// SetTxnToGorm sets transaction to gorm settings, returns cloned DB
+func SetTxnToGorm(txn newrelic.Transaction, db *gorm.DB) *gorm.DB {
 	if txn == nil {
 		return db
 	}
 	return db.Set(txnGormKey, txn)
 }
 
-// Adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
+// AddGormCallbacks adds callbacks to NewRelic, you should call SetTxnToGorm to make them work
 func AddGormCallbacks(db *gorm.DB) {
 	dialect := db.Dialect().GetName()
 	var product newrelic.DatastoreProduct
@@ -85,19 +83,13 @@ func (c *callbacks) after(scope *gorm.Scope, operation string) {
 	if operation == "" {
 		operation = strings.ToUpper(strings.Split(scope.SQL, " ")[0])
 	}
-	newrelic.DatastoreSegment{
-		StartTime:          startTime.(newrelic.SegmentStartTime),
-		Product:            c.product,
-		ParameterizedQuery: scope.SQL,
-		Operation:          operation,
-		Collection:         scope.TableName(),
-	}.End()
-	// It's too difficult to mock
-	// uncomment it for tests
-	// fmt.Println("Product:", c.product)
-	// fmt.Println("ParameterizedQuery:", scope.SQL)
-	// fmt.Println("Operation:", operation)
-	// fmt.Println("Collection:", scope.TableName())
+	segmentBuilder(
+		startTime.(newrelic.SegmentStartTime),
+		c.product,
+		scope.SQL,
+		operation,
+		scope.TableName(),
+	).End()
 }
 
 func registerCallbacks(db *gorm.DB, name string, c *callbacks) {
@@ -121,5 +113,26 @@ func registerCallbacks(db *gorm.DB, name string, c *callbacks) {
 	case "row_query":
 		db.Callback().RowQuery().Before(gormCallbackName).Register(beforeName, c.beforeRowQuery)
 		db.Callback().RowQuery().After(gormCallbackName).Register(afterName, c.afterRowQuery)
+	}
+}
+
+type segment interface {
+	End()
+}
+
+// create segment through function to be able to test it
+var segmentBuilder = func(
+	startTime newrelic.SegmentStartTime,
+	product newrelic.DatastoreProduct,
+	query string,
+	operation string,
+	collection string,
+) segment {
+	return newrelic.DatastoreSegment{
+		StartTime:          startTime,
+		Product:            product,
+		ParameterizedQuery: query,
+		Operation:          operation,
+		Collection:         collection,
 	}
 }
