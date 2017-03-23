@@ -117,7 +117,7 @@ func registerCallbacks(db *gorm.DB, name string, c *callbacks) {
 }
 
 type segment interface {
-	End()
+	End() error
 }
 
 // create segment through function to be able to test it

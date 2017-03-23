@@ -9,6 +9,7 @@ type DatastoreSegment struct {
 	Finished  bool
 }
 
-func (m *DatastoreSegment) End() {
+func (m *DatastoreSegment) End() error {
 	m.Finished = true
+	return nil
 }

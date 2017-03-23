@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/smacker/newrelic-context/nrmock"
 )
 
 func TestHandler(t *testing.T) {
@@ -19,7 +21,7 @@ func TestHandler(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
 	w := httptest.NewRecorder()
 
-	app := &NewrelicAppMock{}
+	app := &nrmock.NewrelicApp{}
 	nr := &NewRelicMiddleware{
 		app:      app,
 		nameFunc: func(r *http.Request) string { return r.URL.Path },

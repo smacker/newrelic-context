@@ -28,7 +28,7 @@ func WrapRedisClient(txn newrelic.Transaction, c *redis.Client) *redis.Client {
 }
 
 type segment interface {
-	End()
+	End() error
 }
 
 // create segment through function to be able to test it
