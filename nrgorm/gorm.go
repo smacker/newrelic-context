@@ -73,9 +73,6 @@ func (c *callbacks) before(scope *gorm.Scope) {
 }
 
 func (c *callbacks) after(scope *gorm.Scope, operation string) {
-	if scope.HasError() {
-		return
-	}
 	startTime, ok := scope.Get(startTimeKey)
 	if !ok {
 		return

@@ -85,6 +85,13 @@ func TestWrappedGorm(t *testing.T) {
 	if lastSegment.Operation != "DELETE" {
 		t.Error("wrong operation")
 	}
+	dbSelectNoRecord(t, txnDB)
+	if lastSegment.Operation != "SELECT" {
+		t.Error("must report SELECT operation even no record result")
+	}
+	if lastSegment.ParameterizedQuery != `SELECT * FROM "models"  WHERE ("models"."value" = ?) ORDER BY "models"."id" ASC LIMIT 1` {
+		t.Error("wrong query", lastSegment.ParameterizedQuery)
+	}
 
 	lastSegment = nil
 	dbInsert(t, db)
@@ -104,6 +111,12 @@ func dbInsert(t *testing.T, db *gorm.DB) {
 
 func dbSelect(t *testing.T, db *gorm.DB) {
 	if err := db.First(&Model{Value: "to-select"}).Error; err != nil {
+		t.Error(err)
+	}
+}
+
+func dbSelectNoRecord(t *testing.T, db *gorm.DB) {
+	if err := db.Where(Model{Value: "not found"}).First(&Model{}).Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
