@@ -21,4 +21,7 @@ func (a *NewrelicApp) RecordCustomEvent(eventType string, params map[string]inte
 func (a *NewrelicApp) WaitForConnection(timeout time.Duration) error {
 	return nil
 }
+func (a *NewrelicApp) RecordCustomMetric(name string, value float64) error {
+	return nil
+}
 func (a *NewrelicApp) Shutdown(timeout time.Duration) {}
