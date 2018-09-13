@@ -28,6 +28,13 @@ func (t *Transaction) Header() http.Header       { return http.Header{} }
 func (t *Transaction) Write([]byte) (int, error) { return 0, nil }
 func (t *Transaction) WriteHeader(int)           {}
 
+func (t *Transaction) CreateDistributedTracePayload() newrelic.DistributedTracePayload {
+	return nil
+}
+func (t *Transaction) AcceptDistributedTracePayload(newrelic.TransportType, interface{}) error {
+	return nil
+}
+
 // test helpers
 
 func (t *Transaction) GetName() string {

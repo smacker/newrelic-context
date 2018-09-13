@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 	// mock newrelic
 	originalBuilder := segmentBuilder
 	segmentBuilder = func(txn newrelic.Transaction, product newrelic.DatastoreProduct, operation string) segment {
-		segment := originalBuilder(txn, product, operation).(newrelic.DatastoreSegment)
+		segment := originalBuilder(txn, product, operation).(*newrelic.DatastoreSegment)
 		mock := &nrmock.DatastoreSegment{DatastoreSegment: segment, Txn: txn}
 		lastSegment = mock
 		return mock
