@@ -33,7 +33,7 @@ type segment interface {
 
 // create segment through function to be able to test it
 var segmentBuilder = func(txn newrelic.Transaction, product newrelic.DatastoreProduct, operation string) segment {
-	return newrelic.DatastoreSegment{
+	return &newrelic.DatastoreSegment{
 		StartTime: newrelic.StartSegmentNow(txn),
 		Product:   product,
 		Operation: operation,

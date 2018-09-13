@@ -125,7 +125,7 @@ var segmentBuilder = func(
 	operation string,
 	collection string,
 ) segment {
-	return newrelic.DatastoreSegment{
+	return &newrelic.DatastoreSegment{
 		StartTime:          startTime,
 		Product:            product,
 		ParameterizedQuery: query,
