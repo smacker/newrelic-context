@@ -77,7 +77,7 @@ func initDB() *gorm.DB {
     if err != nil {
         panic(err)
     }
-    nrcontext.AddGormCallbacks(db)
+    nrgorm.AddGormCallbacks(db)
     return db
 }
 

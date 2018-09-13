@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/smacker/newrelic-context"
-	"net/http"
+	"github.com/smacker/newrelic-context/nrgorm"
 )
 
 var db *gorm.DB
@@ -15,7 +17,7 @@ func initDB() *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	nrcontext.AddGormCallbacks(db)
+	nrgorm.AddGormCallbacks(db)
 	return db
 }
 
