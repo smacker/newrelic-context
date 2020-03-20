@@ -35,6 +35,38 @@ func (t *Transaction) AcceptDistributedTracePayload(newrelic.TransportType, inte
 	return nil
 }
 
+func (t *Transaction) SetWebRequest(newrelic.WebRequest) error {
+	return nil
+}
+
+func (t *Transaction) SetWebResponse(http.ResponseWriter) newrelic.Transaction {
+	return t
+}
+
+func (t *Transaction) Application() newrelic.Application {
+	return &NewrelicApp{}
+}
+
+func (t *Transaction) BrowserTimingHeader() (*newrelic.BrowserTimingHeader, error) {
+	return nil, nil
+}
+
+func (t *Transaction) NewGoroutine() newrelic.Transaction {
+	return t
+}
+
+func (t *Transaction) GetTraceMetadata() newrelic.TraceMetadata {
+	return newrelic.TraceMetadata{}
+}
+
+func (t *Transaction) GetLinkingMetadata() newrelic.LinkingMetadata {
+	return newrelic.LinkingMetadata{}
+}
+
+func (t *Transaction) IsSampled() bool {
+	return false
+}
+
 // test helpers
 
 func (t *Transaction) GetName() string {
