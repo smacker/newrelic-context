@@ -17,7 +17,7 @@ type Model struct {
 
 var db *gorm.DB
 var testTxn newrelic.Transaction
-var lastSegment *nrmock.DatastoreSegment
+var segmentsHistory []*nrmock.DatastoreSegment
 
 func TestMain(m *testing.M) {
 	var err error
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	) segment {
 		segment := originalBuilder(startTime, product, query, operation, collection).(*newrelic.DatastoreSegment)
 		mock := &nrmock.DatastoreSegment{DatastoreSegment: segment, StartTime: startTime}
-		lastSegment = mock
+		segmentsHistory = append(segmentsHistory, mock)
 		return mock
 	}
 
@@ -59,33 +59,63 @@ func TestMain(m *testing.M) {
 }
 
 func TestWrappedGorm(t *testing.T) {
+	segmentsHistory = []*nrmock.DatastoreSegment{}
 	txnDB := SetTxnToGorm(testTxn, db)
 	dbInsert(t, txnDB)
+	lastSegment := segmentsHistory[0]
 	if lastSegment.Product != newrelic.DatastoreSQLite {
-		t.Error("wrong product")
+		t.Errorf("wrong product: %v", lastSegment.Product)
 	}
 	if lastSegment.ParameterizedQuery != `INSERT INTO "models" ("value") VALUES (?)` {
-		t.Error("wrong query")
+		t.Errorf("wrong query: %v", lastSegment.ParameterizedQuery)
 	}
 	if lastSegment.Operation != "INSERT" {
-		t.Error("wrong operation")
+		t.Errorf("wrong operation: %v", lastSegment.Operation)
 	}
 	if lastSegment.Collection != "models" {
-		t.Error("wrong collection")
+		t.Errorf("wrong collection: %v", lastSegment.Collection)
 	}
+	// gorm always tries to wrap insert into transaction
+	lastSegment = segmentsHistory[1]
+	if lastSegment.Operation != "COMMIT/ROLLBACK" {
+		t.Errorf("wrong operation: %v", lastSegment.Operation)
+	}
+	if lastSegment.Collection != "models" {
+		t.Errorf("wrong collection: %v", lastSegment.Collection)
+	}
+	// no transaction on select
 	dbSelect(t, txnDB)
-	if lastSegment.Operation != "SELECT" {
-		t.Error("wrong operation")
-	}
+	// to update we have to create a row first +2 transactions
 	dbUpdate(t, txnDB)
+	lastSegment = segmentsHistory[5]
 	if lastSegment.Operation != "UPDATE" {
-		t.Error("wrong operation")
+		t.Errorf("wrong operation: %v", lastSegment.Operation)
 	}
+	// gorm always tries to wrap update into transaction
+	lastSegment = segmentsHistory[6]
+	if lastSegment.Operation != "COMMIT/ROLLBACK" {
+		t.Errorf("wrong operation: %v", lastSegment.Operation)
+	}
+	if lastSegment.Collection != "models" {
+		t.Errorf("wrong collection: %v", lastSegment.Collection)
+	}
+	// to delete we have to create a row first +2 transactions
 	dbDelete(t, txnDB)
+	lastSegment = segmentsHistory[9]
 	if lastSegment.Operation != "DELETE" {
-		t.Error("wrong operation")
+		t.Errorf("wrong operation: %v", lastSegment.Operation)
 	}
+	// gorm always tries to wrap delete into transaction
+	lastSegment = segmentsHistory[10]
+	if lastSegment.Operation != "COMMIT/ROLLBACK" {
+		t.Errorf("wrong operation: %v", lastSegment.Operation)
+	}
+	if lastSegment.Collection != "models" {
+		t.Errorf("wrong collection: %v", lastSegment.Collection)
+	}
+
 	dbSelectNoRecord(t, txnDB)
+	lastSegment = segmentsHistory[11]
 	if lastSegment.Operation != "SELECT" {
 		t.Error("must report SELECT operation even no record result")
 	}
@@ -93,13 +123,52 @@ func TestWrappedGorm(t *testing.T) {
 		t.Error("wrong query", lastSegment.ParameterizedQuery)
 	}
 
-	lastSegment = nil
+	historyLen := len(segmentsHistory)
 	dbInsert(t, db)
 	dbSelect(t, db)
 	dbUpdate(t, db)
 	dbDelete(t, db)
-	if lastSegment != nil {
+	if len(segmentsHistory) > historyLen {
 		t.Error("main db was affected")
+	}
+}
+
+func TestDBManualTransaction(t *testing.T) {
+	segmentsHistory = []*nrmock.DatastoreSegment{}
+	txnDB := SetTxnToGorm(testTxn, db)
+
+	// when transaction has been started manually gorm won't wrap insert/update/delete into another tx
+	// commit time in such case must be measured manually by the user
+	tx := txnDB.Begin()
+
+	m := &Model{Value: "manual-tx-test"}
+	if err := tx.Create(m).Error; err != nil {
+		t.Error(err)
+	}
+	m.Value = "updated"
+	if err := tx.Save(m).Error; err != nil {
+		t.Error(err)
+	}
+	if err := tx.Delete(m).Error; err != nil {
+		t.Error(err)
+	}
+
+	tx.Commit()
+
+	if len(segmentsHistory) != 3 {
+		t.Errorf("expected 3 segments, got: %v", len(segmentsHistory))
+	}
+	op := segmentsHistory[0].Operation
+	if op != "INSERT" {
+		t.Errorf("wrong operation: %v", op)
+	}
+	op = segmentsHistory[1].Operation
+	if op != "UPDATE" {
+		t.Errorf("wrong operation: %v", op)
+	}
+	op = segmentsHistory[2].Operation
+	if op != "DELETE" {
+		t.Errorf("wrong operation: %v", op)
 	}
 }
 

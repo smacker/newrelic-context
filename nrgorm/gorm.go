@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/jinzhu/gorm"
-	"github.com/newrelic/go-agent"
+	newrelic "github.com/newrelic/go-agent"
 )
 
 const (
@@ -38,6 +38,7 @@ func AddGormCallbacks(db *gorm.DB) {
 		return
 	}
 	callbacks := newCallbacks(product)
+	registerCallbacks(db, "transaction", callbacks)
 	registerCallbacks(db, "create", callbacks)
 	registerCallbacks(db, "query", callbacks)
 	registerCallbacks(db, "update", callbacks)
@@ -87,6 +88,30 @@ func (c *callbacks) after(scope *gorm.Scope, operation string) {
 		operation,
 		scope.TableName(),
 	).End()
+
+	// gorm wraps insert&update into transaction automatically
+	// add another segment for commit/rollback in such case
+	if _, ok := scope.InstanceGet("gorm:started_transaction"); !ok {
+		scope.Set(startTimeKey, nil)
+		return
+	}
+	txn, _ := scope.Get(txnGormKey)
+	scope.Set(startTimeKey, newrelic.StartSegmentNow(txn.(newrelic.Transaction)))
+}
+
+func (c *callbacks) commitOrRollback(scope *gorm.Scope) {
+	startTime, ok := scope.Get(startTimeKey)
+	if !ok || startTime == nil {
+		return
+	}
+
+	segmentBuilder(
+		startTime.(newrelic.SegmentStartTime),
+		c.product,
+		"",
+		"COMMIT/ROLLBACK",
+		scope.TableName(),
+	).End()
 }
 
 func registerCallbacks(db *gorm.DB, name string, c *callbacks) {
@@ -98,15 +123,24 @@ func registerCallbacks(db *gorm.DB, name string, c *callbacks) {
 	case "create":
 		db.Callback().Create().Before(gormCallbackName).Register(beforeName, c.beforeCreate)
 		db.Callback().Create().After(gormCallbackName).Register(afterName, c.afterCreate)
+		db.Callback().Create().
+			After("gorm:commit_or_rollback_transaction").
+			Register(fmt.Sprintf("newrelic:commit_or_rollback_transaction_%v", name), c.commitOrRollback)
 	case "query":
 		db.Callback().Query().Before(gormCallbackName).Register(beforeName, c.beforeQuery)
 		db.Callback().Query().After(gormCallbackName).Register(afterName, c.afterQuery)
 	case "update":
 		db.Callback().Update().Before(gormCallbackName).Register(beforeName, c.beforeUpdate)
 		db.Callback().Update().After(gormCallbackName).Register(afterName, c.afterUpdate)
+		db.Callback().Update().
+			After("gorm:commit_or_rollback_transaction").
+			Register(fmt.Sprintf("newrelic:commit_or_rollback_transaction_%v", name), c.commitOrRollback)
 	case "delete":
 		db.Callback().Delete().Before(gormCallbackName).Register(beforeName, c.beforeDelete)
 		db.Callback().Delete().After(gormCallbackName).Register(afterName, c.afterDelete)
+		db.Callback().Delete().
+			After("gorm:commit_or_rollback_transaction").
+			Register(fmt.Sprintf("newrelic:commit_or_rollback_transaction_%v", name), c.commitOrRollback)
 	case "row_query":
 		db.Callback().RowQuery().Before(gormCallbackName).Register(beforeName, c.beforeRowQuery)
 		db.Callback().RowQuery().After(gormCallbackName).Register(afterName, c.afterRowQuery)
